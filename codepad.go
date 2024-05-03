@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"os"
 
@@ -8,10 +10,21 @@ import (
 )
 
 func main() {
+	var buffer bytes.Buffer
 
-	// get snippet
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if line == "done" {
+			break
+		}
+		buffer.WriteString(line + "\n")
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintln(os.Stderr, "reading standard input:", err)
+	}
 
-	err := quick.Highlight(os.Stdout, "func main() {}", "go", "terminal256", "monokai")
+	err := quick.Highlight(os.Stdout, buffer.String(), "go", "terminal256", "monokai")
 	if err != nil {
 		fmt.Println("Error has occurred: ", err)
 	}

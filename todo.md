@@ -4,6 +4,7 @@
 - [ ] What do data models look like in the file. (Make file the title and contents the snippet)
 - [ ] Implement option based interface.
 - [ ] Brain storm updating/overwriting decision
+- [ ] Add formatter for terminal output
 
 ## Tech Stack
 - Syntax highlighter for Go.
