@@ -10,8 +10,18 @@ import (
 	"strings"
 )
 
+type CrudOption string
+
+const (
+	READ   CrudOption = "Read"
+	WRITE  CrudOption = "Write"
+	DELETE CrudOption = "Delete"
+)
+
+var crudOptions = []CrudOption{READ, WRITE, DELETE}
+
 // option struct
-type Option struct {
+type LanguageOption struct {
 	Number       int    // Option number
 	LanguageName string // Option text
 }
@@ -27,41 +37,76 @@ func main() {
 	var buffer bytes.Buffer
 
 	reader := bufio.NewReader(os.Stdin)
+	// get user CRUD selection
+	switch selectedCrud := getUserCrudSelection(reader); selectedCrud {
+	case READ:
+		// TODO reading
+		// err := quick.Highlight(os.Stdout, buffer.String(), "go", "terminal256", "monokai")
+		// if err != nil {
+		// 	fmt.Println("Error has occurred: ", err)
+		// }
+	case WRITE:
+		// get user selected language
+		selectedLanguage := getUserLanguage(reader)
+		fmt.Println(selectedLanguage)
 
-	// get user selected language
-	selectedLanguage := getUserLanguage(reader)
-	fmt.Println(selectedLanguage)
+		// get user code snippet
+		userSnippet := getUserSnippet(reader)
+		fmt.Println(userSnippet)
 
-	// get user code snippet
-	userSnippet := getUserSnippet(reader)
-	fmt.Println(userSnippet)
+		scanner := bufio.NewScanner(os.Stdin)
+		fmt.Println("Paste code snippet:")
 
-	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Println("Paste code snippet:")
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		if line == "done" {
-			break
+		for scanner.Scan() {
+			line := scanner.Text()
+			if line == "done" {
+				break
+			}
+			buffer.WriteString(line + "\n")
 		}
-		buffer.WriteString(line + "\n")
+		if err := scanner.Err(); err != nil {
+			fmt.Fprintln(os.Stderr, "reading standard input:", err)
+		}
+
+		// save the buffer to file
+		file, err := os.Create("./" + userSnippet)
+		file.Write(buffer.Bytes())
+		if err != nil {
+			fmt.Println("Error creating file", err)
+		}
+
+	case DELETE:
+		// TODO
 	}
-	if err := scanner.Err(); err != nil {
-		fmt.Fprintln(os.Stderr, "reading standard input:", err)
+}
+
+func getUserCrudSelection(reader *bufio.Reader) CrudOption {
+	// display options
+	for i, option := range crudOptions {
+		formattedOption := fmt.Sprintf("%d. %s", i+1, option)
+		fmt.Println(formattedOption)
 	}
 
-	// save the buffer to file
-	file, err := os.Create("./" + userSnippet)
-	file.Write(buffer.Bytes())
-	if err != nil {
-		fmt.Println("Error creating file", err)
+	for {
+		fmt.Println("What would you like to do? (Input number)")
+		input, err := reader.ReadString('\n')
+		input = strings.TrimSpace(input)
+		if err != nil {
+			fmt.Println("Error reading input:", err)
+			continue
+		}
+		// verify input is number
+		selectedOption, err := strconv.Atoi(input)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		if selectedOption == 0 || selectedOption > len(crudOptions) {
+			fmt.Println("Option does not exist")
+			continue
+		}
+		return crudOptions[selectedOption-1]
 	}
-
-	// // reading
-	// // err := quick.Highlight(os.Stdout, buffer.String(), "go", "terminal256", "monokai")
-	// // if err != nil {
-	// // 	fmt.Println("Error has occurred: ", err)
-	// // }
 }
 
 func getUserLanguage(reader *bufio.Reader) string {
@@ -84,7 +129,7 @@ func getUserLanguage(reader *bufio.Reader) string {
 	return userInput.LanguageName
 }
 
-func getUserLanguageSelection(optionsList []Option, reader *bufio.Reader) *Option {
+func getUserLanguageSelection(optionsList []LanguageOption, reader *bufio.Reader) *LanguageOption {
 	for {
 		fmt.Print("Enter the selected language number: ")
 		input, err := reader.ReadString('\n')
@@ -105,7 +150,7 @@ func getUserLanguageSelection(optionsList []Option, reader *bufio.Reader) *Optio
 	}
 }
 
-func verifyUserInput(optionsList []Option, input string) (*Option, error) {
+func verifyUserInput(optionsList []LanguageOption, input string) (*LanguageOption, error) {
 	input = strings.TrimSpace(input)
 
 	// verify input exists as option
@@ -119,7 +164,7 @@ func verifyUserInput(optionsList []Option, input string) (*Option, error) {
 		}
 	}
 
-	return nil, errors.New("Option does not exist")
+	return nil, errors.New("option does not exist")
 }
 
 func getUserSnippet(reader *bufio.Reader) string {
@@ -143,19 +188,19 @@ func getUserSnippet(reader *bufio.Reader) string {
 	return snippet
 }
 
-func displayOptionsList(optionsList []Option) {
+func displayOptionsList(optionsList []LanguageOption) {
 	for _, option := range optionsList {
 		formattedOption := fmt.Sprintf("%d. %s", option.Number, option.LanguageName)
 		fmt.Println(formattedOption)
 	}
 }
 
-func getOptionList(languages []string) []Option {
+func getOptionList(languages []string) []LanguageOption {
 	counter := 1
-	var optionsList []Option
+	var optionsList []LanguageOption
 
 	for _, language := range languages {
-		option := Option{
+		option := LanguageOption{
 			Number:       counter,
 			LanguageName: language,
 		}
@@ -164,7 +209,7 @@ func getOptionList(languages []string) []Option {
 		counter += 1
 	}
 
-	addNewLanguageOption := Option{
+	addNewLanguageOption := LanguageOption{
 		Number:       counter,
 		LanguageName: "Add a new language",
 	}
