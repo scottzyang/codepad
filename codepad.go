@@ -3,36 +3,38 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 )
+
+// option struct
+type Option struct {
+	Number       int    // Option number
+	LanguageName string // Option text
+}
+
+// snippet struct used for created file and snippet
+type Snippet struct {
+	Name           string
+	Language       string
+	SnippetContent string
+}
 
 func main() {
 	var buffer bytes.Buffer
 
 	reader := bufio.NewReader(os.Stdin)
 
-	// prompt user fo rlanguage name
-	fmt.Println("Select language:")
+	// get user selected language
+	selectedLanguage := getUserLanguage(reader)
+	fmt.Println(selectedLanguage)
 
-	// search all directories and return them as options.
-	counter := 1
-	languages := get_language_directories()
-	for _, language := range languages {
-		option := fmt.Sprintf("%d. %s", counter, language)
-		fmt.Println(option)
-		counter += 1
-	}
-
-	// wait for user input
-	selected_language, _ := reader.ReadString('\n')
-	fmt.Println(selected_language)
-
-	// use selected language to navigate to folder.
-
-	// prompt user to add to existing or create new
-	fmt.Println("Enter name of snippet:")
-	snippet, _ := reader.ReadString('\n')
+	// get user code snippet
+	userSnippet := getUserSnippet(reader)
+	fmt.Println(userSnippet)
 
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Println("Paste code snippet:")
@@ -49,7 +51,7 @@ func main() {
 	}
 
 	// save the buffer to file
-	file, err := os.Create("./" + snippet)
+	file, err := os.Create("./" + userSnippet)
 	file.Write(buffer.Bytes())
 	if err != nil {
 		fmt.Println("Error creating file", err)
@@ -62,10 +64,119 @@ func main() {
 	// // }
 }
 
+func getUserLanguage(reader *bufio.Reader) string {
+	// prompt user for language name
+	fmt.Println("Select language:")
+
+	// search all directories and return them as options.
+	languages := getLanguageDirectories()
+
+	// create options list
+	optionsList := getOptionList(languages)
+
+	// display options list
+	displayOptionsList(optionsList)
+
+	// get user input
+	userInput := getUserLanguageSelection(optionsList, reader)
+
+	// wait for user input
+	return userInput.LanguageName
+}
+
+func getUserLanguageSelection(optionsList []Option, reader *bufio.Reader) *Option {
+	for {
+		fmt.Print("Enter the selected language number: ")
+		input, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Println("Error reading input:", err)
+			continue
+		}
+
+		// verify user input exists as option
+		inputOption, err := verifyUserInput(optionsList, input)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+
+		// if input not verified reprompt
+		return inputOption
+	}
+}
+
+func verifyUserInput(optionsList []Option, input string) (*Option, error) {
+	input = strings.TrimSpace(input)
+
+	// verify input exists as option
+	selectedOption, err := strconv.Atoi(input)
+	if err != nil {
+		return nil, err
+	}
+	for _, option := range optionsList {
+		if option.Number == selectedOption {
+			return &option, nil
+		}
+	}
+
+	return nil, errors.New("Option does not exist")
+}
+
+func getUserSnippet(reader *bufio.Reader) string {
+	// prompt user to add to existing or create new
+	fmt.Println("Enter a title for the snippet (maximum 50 characters):")
+	snippet, err := reader.ReadString('\n')
+	if err != nil {
+		// Handle error
+		fmt.Println("Error reading code snippet title", err)
+	}
+
+	// Trim any leading/trailing whitespace
+	snippet = strings.TrimSpace(snippet)
+
+	// Limit the input to a certain length, e.g., 50 characters
+	maxChars := 50
+	if len(snippet) > maxChars {
+		snippet = snippet[:maxChars]
+	}
+
+	return snippet
+}
+
+func displayOptionsList(optionsList []Option) {
+	for _, option := range optionsList {
+		formattedOption := fmt.Sprintf("%d. %s", option.Number, option.LanguageName)
+		fmt.Println(formattedOption)
+	}
+}
+
+func getOptionList(languages []string) []Option {
+	counter := 1
+	var optionsList []Option
+
+	for _, language := range languages {
+		option := Option{
+			Number:       counter,
+			LanguageName: language,
+		}
+
+		optionsList = append(optionsList, option)
+		counter += 1
+	}
+
+	addNewLanguageOption := Option{
+		Number:       counter,
+		LanguageName: "Add a new language",
+	}
+
+	optionsList = append(optionsList, addNewLanguageOption)
+	return optionsList
+}
+
 // create new code pad folder for snippets
-func create_new_codepad_directory() {
+func createNewCodepadDirectory() {
 	// Get the directory path
-	codePadDir := get_home_dir()
+	codePadDir := getHomeDir()
 
 	// Check if the directory exists, else create it
 	if _, err := os.Stat(codePadDir); os.IsNotExist(err) {
@@ -84,8 +195,8 @@ func create_new_codepad_directory() {
 }
 
 // create language directory WIP refactor this to be more reusable with other directory making functions
-func create_new_language_directory(language string) {
-	codePadDir := get_home_dir()
+func createNewLanguageDirectory(language string) {
+	codePadDir := getHomeDir()
 	languageDir := codePadDir + "/" + language
 
 	// Check if the directory exists, else create it
@@ -105,7 +216,7 @@ func create_new_language_directory(language string) {
 }
 
 // get the home dir for code pad
-func get_home_dir() string {
+func getHomeDir() string {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		fmt.Println("Error getting user's home directory:", err)
@@ -114,10 +225,10 @@ func get_home_dir() string {
 }
 
 // search for language directories within codepad
-func get_language_directories() []string {
+func getLanguageDirectories() []string {
 	var languageNames []string
 
-	codePadDir := get_home_dir()
+	codePadDir := getHomeDir()
 
 	dir, err := os.Open(codePadDir)
 	if err != nil {
