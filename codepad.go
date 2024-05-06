@@ -47,8 +47,8 @@ func main() {
 		// }
 	case WRITE:
 		// get user selected language
-		selectedLanguage := getUserLanguage(reader)
-		fmt.Println(selectedLanguage)
+		optionNumber, selectedLanguage := getUserLanguage(reader)
+		fmt.Println(optionNumber, selectedLanguage)
 
 		// get user code snippet
 		userSnippet := getUserSnippet(reader)
@@ -109,7 +109,7 @@ func getUserCrudSelection(reader *bufio.Reader) CrudOption {
 	}
 }
 
-func getUserLanguage(reader *bufio.Reader) string {
+func getUserLanguage(reader *bufio.Reader) (int, string) {
 	// prompt user for language name
 	fmt.Println("Select language:")
 
@@ -125,8 +125,18 @@ func getUserLanguage(reader *bufio.Reader) string {
 	// get user input
 	userInput := getUserLanguageSelection(optionsList, reader)
 
+	if userInput.LanguageName == "Add a new language" {
+		fmt.Println("What language would you like to add?")
+		input, err := reader.ReadString('\n')
+		input = strings.TrimSpace(input)
+		if err != nil {
+			fmt.Println("Error reading input:", err)
+		}
+		createNewLanguageDirectory(input)
+	}
+
 	// wait for user input
-	return userInput.LanguageName
+	return userInput.Number, userInput.LanguageName
 }
 
 func getUserLanguageSelection(optionsList []LanguageOption, reader *bufio.Reader) *LanguageOption {
@@ -242,7 +252,8 @@ func createNewCodepadDirectory() {
 // create language directory WIP refactor this to be more reusable with other directory making functions
 func createNewLanguageDirectory(language string) {
 	codePadDir := getHomeDir()
-	languageDir := codePadDir + "/" + language
+	capitalizedLanguage := capitalizeFirstLetter(language)
+	languageDir := codePadDir + "/" + capitalizedLanguage
 
 	// Check if the directory exists, else create it
 	if _, err := os.Stat(languageDir); os.IsNotExist(err) {
@@ -250,7 +261,6 @@ func createNewLanguageDirectory(language string) {
 		err := os.MkdirAll(languageDir, 0755)
 		if err != nil {
 			fmt.Println("Error creating language directory:", err)
-			return
 		}
 		fmt.Println("Language directory created successfully")
 	} else if err != nil {
@@ -296,4 +306,25 @@ func getLanguageDirectories() []string {
 		}
 	}
 	return languageNames
+}
+
+func newLanguageInput(option string, reader *bufio.Reader) {
+	if option == "Add a new language" {
+		fmt.Println("What language would you like to add?")
+		input, err := reader.ReadString('\n')
+		input = strings.TrimSpace(input)
+		if err != nil {
+			fmt.Println("Error reading input:", err)
+		}
+		createNewLanguageDirectory(input)
+	}
+}
+
+func capitalizeFirstLetter(input string) string {
+	if len(input) == 0 {
+		return input
+	}
+	capitalized := strings.ToUpper(input[:1]) + input[1:]
+	fmt.Println(capitalized)
+	return capitalized
 }
