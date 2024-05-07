@@ -1,4 +1,4 @@
-module codepad
+module github.com/scottzyang/codepad
 
 go 1.22.1
 
