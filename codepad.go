@@ -24,8 +24,8 @@ var crudOptions = []CrudOption{READ, WRITE, DELETE}
 
 // option struct
 type LanguageOption struct {
-	Number       int    // Option number
-	LanguageName string // Option text
+	Number       int
+	LanguageName string
 }
 
 // snippet struct used for created file and snippet
@@ -47,7 +47,7 @@ func main() {
 	switch selectedCrud := getUserCrudSelection(reader); selectedCrud {
 	case READ:
 		// get user selected languages
-		selectedLanguage := getUserLanguage(reader)
+		selectedLanguage := getUserLanguage(reader, selectedCrud)
 		langPath := codePadDir + "/" + selectedLanguage
 
 		// get snippet selection
@@ -59,7 +59,7 @@ func main() {
 
 	case WRITE:
 		// get user selected language
-		selectedLanguage := getUserLanguage(reader)
+		selectedLanguage := getUserLanguage(reader, selectedCrud)
 
 		// get user code snippet
 		userSnippet, snippetText := getUserSnippet(reader, buffer)
@@ -74,7 +74,7 @@ func main() {
 		createNewSnippet(newSnippet)
 	case DELETE:
 		// get user selected languages
-		selectedLanguage := getUserLanguage(reader)
+		selectedLanguage := getUserLanguage(reader, selectedCrud)
 		langPath := codePadDir + "/" + selectedLanguage
 
 		// get snippet selection
@@ -115,7 +115,7 @@ func getUserCrudSelection(reader *bufio.Reader) CrudOption {
 	}
 }
 
-func getUserLanguage(reader *bufio.Reader) string {
+func getUserLanguage(reader *bufio.Reader, selectedCrud CrudOption) string {
 	// prompt user for language name
 	fmt.Println("Select language:")
 
@@ -123,7 +123,7 @@ func getUserLanguage(reader *bufio.Reader) string {
 	languages := getLanguageDirectories()
 
 	// create options list
-	optionsList := getOptionList(languages)
+	optionsList := getOptionList(languages, selectedCrud)
 
 	// display options list
 	displayOptionsList(optionsList)
@@ -218,7 +218,7 @@ func displayOptionsList(optionsList []LanguageOption) {
 	}
 }
 
-func getOptionList(languages []string) []LanguageOption {
+func getOptionList(languages []string, selectedCrud CrudOption) []LanguageOption {
 	counter := 1
 	var optionsList []LanguageOption
 
@@ -232,12 +232,13 @@ func getOptionList(languages []string) []LanguageOption {
 		counter += 1
 	}
 
-	addNewLanguageOption := LanguageOption{
-		Number:       counter,
-		LanguageName: "Add a new language",
+	if selectedCrud == WRITE {
+		addNewLanguageOption := LanguageOption{
+			Number:       counter,
+			LanguageName: "Add a new language",
+		}
+		optionsList = append(optionsList, addNewLanguageOption)
 	}
-
-	optionsList = append(optionsList, addNewLanguageOption)
 	return optionsList
 }
 
