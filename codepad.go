@@ -8,6 +8,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/alecthomas/chroma/v2/quick"
 )
 
 type CrudOption string
@@ -38,16 +40,23 @@ func main() {
 
 	// init codepad dir
 	createNewCodepadDirectory()
+	codePadDir := getHomeDir()
 
 	reader := bufio.NewReader(os.Stdin)
 	// get user CRUD selection
 	switch selectedCrud := getUserCrudSelection(reader); selectedCrud {
 	case READ:
-		// TODO reading
-		// err := quick.Highlight(os.Stdout, buffer.String(), "go", "terminal256", "monokai")
-		// if err != nil {
-		// 	fmt.Println("Error has occurred: ", err)
-		// }
+		// get user selected languages
+		selectedLanguage := getUserLanguage(reader)
+		langPath := codePadDir + "/" + selectedLanguage
+
+		// get snippet selection
+		snippet := getSnippetSelection(langPath, READ, reader)
+		snippetPath := langPath + "/" + snippet
+
+		// display snippet
+		findAndDisplaySnippet(snippetPath, selectedLanguage)
+
 	case WRITE:
 		// get user selected language
 		selectedLanguage := getUserLanguage(reader)
@@ -64,7 +73,16 @@ func main() {
 		// create new snippet within language directory
 		createNewSnippet(newSnippet)
 	case DELETE:
-		// TODO
+		// get user selected languages
+		selectedLanguage := getUserLanguage(reader)
+		langPath := codePadDir + "/" + selectedLanguage
+
+		// get snippet selection
+		snippet := getSnippetSelection(langPath, DELETE, reader)
+		snippetPath := langPath + "/" + snippet
+
+		// delete snippet
+		findAndDeleteSnippet(snippetPath)
 	}
 }
 
@@ -76,7 +94,7 @@ func getUserCrudSelection(reader *bufio.Reader) CrudOption {
 	}
 
 	for {
-		fmt.Println("What would you like to do? (Input number)")
+		fmt.Print("What would you like to do? (Input number): ")
 		input, err := reader.ReadString('\n')
 		input = strings.TrimSpace(input)
 		if err != nil {
@@ -137,7 +155,6 @@ func getUserLanguageSelection(optionsList []LanguageOption, reader *bufio.Reader
 			continue
 		}
 
-		// if input not verified reprompt
 		return inputOption
 	}
 }
@@ -341,4 +358,87 @@ func createNewSnippet(newSnippet Snippet) {
 	if err != nil {
 		fmt.Println("Error creating file", err)
 	}
+}
+
+// don't use this for write, read/delete only
+func getSnippetSelection(path string, crudOption CrudOption, reader *bufio.Reader) string {
+	var snippets []string
+
+	dir, err := os.Open(path)
+	if err != nil {
+		fmt.Println("Error opening directory:", err)
+	}
+	defer dir.Close()
+
+	// read all file names
+	entries, err := dir.Readdir(-1)
+	if err != nil {
+		fmt.Println("Error reading directory contents:", err)
+	}
+
+	// Iterate over the entries
+	for _, entry := range entries {
+		// Check if the entry is a file
+		if !entry.IsDir() {
+			// append the file name
+			snippets = append(snippets, entry.Name())
+		}
+	}
+
+	// prompt for snippet selection
+	if crudOption == READ {
+		fmt.Println("Choose a snippet to read:")
+
+	} else if crudOption == DELETE {
+		fmt.Println("Choose a snippet to delete:")
+	}
+
+	for i, option := range snippets {
+		formattedOption := fmt.Sprintf("%d. %s", i+1, option)
+		fmt.Println(formattedOption)
+	}
+
+	for {
+		fmt.Print("Input snippet selection number: ")
+		input, err := reader.ReadString('\n')
+		input = strings.TrimSpace(input)
+		if err != nil {
+			fmt.Println("Error reading input:", err)
+			fmt.Println("Try again:")
+			continue
+		}
+		// verify input is number
+		selectedOption, err := strconv.Atoi(input)
+		if err != nil {
+			fmt.Println("Not a number, try again:")
+			continue
+		}
+		if selectedOption == 0 || selectedOption > len(crudOptions) {
+			fmt.Println("Option does not exist, try again:")
+			continue
+		}
+		return snippets[selectedOption-1]
+	}
+}
+
+func findAndDisplaySnippet(path string, language string) {
+	b, err := os.ReadFile(path) // just pass the file name
+	if err != nil {
+		fmt.Print(err)
+	}
+
+	str := string(b) // convert content to a 'string'
+
+	err = quick.Highlight(os.Stdout, str, language, "terminal256", "monokai")
+	if err != nil {
+		fmt.Println("Error has occurred: ", err)
+	}
+}
+
+func findAndDeleteSnippet(path string) {
+	e := os.Remove(path)
+	if e != nil {
+		fmt.Println("Failed to delete the file")
+	}
+	fmt.Println("Successfully deleted the snippet")
 }
