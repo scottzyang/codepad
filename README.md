@@ -7,7 +7,7 @@ CodePad is a command-line tool written in Go for managing code snippets. It allo
 ## Features
 
 - **CRUD Operations:** Perform Create, Read, Update, and Delete operations on code snippets.
-- **Syntax Highlighting:** Code snippets are displayed with syntax highlighting for better readability.
+- **Syntax Highlighting:** Code snippets are displayed with syntax highlighting for better readability through the `github.com/alecthomas/chroma/v2/` package.
 - **Interactive Interface:** Easy-to-use command-line interface for managing code snippets.
 - **Colorful Output:** Utilizes the `github.com/fatih/color` package for colorful console output.
 
