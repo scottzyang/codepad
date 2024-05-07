@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/alecthomas/chroma/v2/quick"
+	"github.com/fatih/color"
 )
 
 type CrudOption string
@@ -94,8 +95,10 @@ func getUserCrudSelection(reader *bufio.Reader) CrudOption {
 	}
 
 	for {
-		fmt.Print("What would you like to do? (Input number): ")
+		blue := color.New(color.FgBlue)
+		blue.Print("What would you like to do? (Input number): ")
 		input, err := reader.ReadString('\n')
+
 		input = strings.TrimSpace(input)
 		if err != nil {
 			fmt.Println("Error reading input:", err)
@@ -117,7 +120,8 @@ func getUserCrudSelection(reader *bufio.Reader) CrudOption {
 
 func getUserLanguage(reader *bufio.Reader, selectedCrud CrudOption) string {
 	// prompt user for language name
-	fmt.Println("Select language:")
+	blue := color.New(color.FgBlue)
+	blue.Print("Select language: \n")
 
 	// search all directories and return them as options.
 	languages := getLanguageDirectories()
@@ -141,7 +145,8 @@ func getUserLanguage(reader *bufio.Reader, selectedCrud CrudOption) string {
 
 func getUserLanguageSelection(optionsList []LanguageOption, reader *bufio.Reader) *LanguageOption {
 	for {
-		fmt.Print("Enter the selected language number: ")
+		blue := color.New(color.FgBlue)
+		blue.Print("Enter the selected language number: ")
 		input, err := reader.ReadString('\n')
 		if err != nil {
 			fmt.Println("Error reading input:", err)
@@ -248,7 +253,7 @@ func createNewCodepadDirectory() {
 	codePadDir := getHomeDir()
 
 	// Check if the directory exists, else create it
-	fmt.Println("Checking if directory exists...")
+	directoryCheckMessage()
 	if _, err := os.Stat(codePadDir); os.IsNotExist(err) {
 		// if it doesn't exist, create it
 		err := os.MkdirAll(codePadDir, 0755)
@@ -260,7 +265,7 @@ func createNewCodepadDirectory() {
 	} else if err != nil {
 		fmt.Println("Error checking directory existence:", err)
 	} else {
-		fmt.Println("Directory already exists.")
+		directoryCheckSuccessMessage()
 	}
 }
 
@@ -388,10 +393,12 @@ func getSnippetSelection(path string, crudOption CrudOption, reader *bufio.Reade
 
 	// prompt for snippet selection
 	if crudOption == READ {
-		fmt.Println("Choose a snippet to read:")
+		blue := color.New(color.FgBlue)
+		blue.Println("Choose a snippet to read:")
 
 	} else if crudOption == DELETE {
-		fmt.Println("Choose a snippet to delete:")
+		blue := color.New(color.FgBlue)
+		blue.Println("Choose a snippet to delete:")
 	}
 
 	for i, option := range snippets {
@@ -400,7 +407,8 @@ func getSnippetSelection(path string, crudOption CrudOption, reader *bufio.Reade
 	}
 
 	for {
-		fmt.Print("Input snippet selection number: ")
+		blue := color.New(color.FgBlue)
+		blue.Print("Input snippet selection number: ")
 		input, err := reader.ReadString('\n')
 		input = strings.TrimSpace(input)
 		if err != nil {
@@ -442,4 +450,14 @@ func findAndDeleteSnippet(path string) {
 		fmt.Println("Failed to delete the file")
 	}
 	fmt.Println("Successfully deleted the snippet")
+}
+
+func directoryCheckMessage() {
+	yellow := color.New(color.FgYellow)
+	yellow.Printf("Checking if codepad directory exists...\n")
+}
+
+func directoryCheckSuccessMessage() {
+	green := color.New(color.FgGreen)
+	green.Printf("Directory already exists\n")
 }
