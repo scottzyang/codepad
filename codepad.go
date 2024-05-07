@@ -30,11 +30,14 @@ type LanguageOption struct {
 type Snippet struct {
 	Name           string
 	Language       string
-	SnippetContent string
+	SnippetContent []byte
 }
 
 func main() {
 	var buffer bytes.Buffer
+
+	// init codepad dir
+	createNewCodepadDirectory()
 
 	reader := bufio.NewReader(os.Stdin)
 	// get user CRUD selection
@@ -47,34 +50,19 @@ func main() {
 		// }
 	case WRITE:
 		// get user selected language
-		optionNumber, selectedLanguage := getUserLanguage(reader)
-		fmt.Println(optionNumber, selectedLanguage)
+		selectedLanguage := getUserLanguage(reader)
 
 		// get user code snippet
-		userSnippet := getUserSnippet(reader)
-		fmt.Println(userSnippet)
+		userSnippet, snippetText := getUserSnippet(reader, buffer)
 
-		scanner := bufio.NewScanner(os.Stdin)
-		fmt.Println("Paste code snippet:")
-
-		for scanner.Scan() {
-			line := scanner.Text()
-			if line == "done" {
-				break
-			}
-			buffer.WriteString(line + "\n")
-		}
-		if err := scanner.Err(); err != nil {
-			fmt.Fprintln(os.Stderr, "reading standard input:", err)
+		newSnippet := Snippet{
+			Name:           userSnippet,
+			Language:       selectedLanguage,
+			SnippetContent: snippetText,
 		}
 
-		// save the buffer to file
-		file, err := os.Create("./" + userSnippet)
-		file.Write(buffer.Bytes())
-		if err != nil {
-			fmt.Println("Error creating file", err)
-		}
-
+		// create new snippet within language directory
+		createNewSnippet(newSnippet)
 	case DELETE:
 		// TODO
 	}
@@ -109,7 +97,7 @@ func getUserCrudSelection(reader *bufio.Reader) CrudOption {
 	}
 }
 
-func getUserLanguage(reader *bufio.Reader) (int, string) {
+func getUserLanguage(reader *bufio.Reader) string {
 	// prompt user for language name
 	fmt.Println("Select language:")
 
@@ -125,18 +113,12 @@ func getUserLanguage(reader *bufio.Reader) (int, string) {
 	// get user input
 	userInput := getUserLanguageSelection(optionsList, reader)
 
-	if userInput.LanguageName == "Add a new language" {
-		fmt.Println("What language would you like to add?")
-		input, err := reader.ReadString('\n')
-		input = strings.TrimSpace(input)
-		if err != nil {
-			fmt.Println("Error reading input:", err)
-		}
-		createNewLanguageDirectory(input)
-	}
+	updatedSelectedLanguage := newLanguageInput(userInput.LanguageName, reader)
+
+	userInput.LanguageName = updatedSelectedLanguage
 
 	// wait for user input
-	return userInput.Number, userInput.LanguageName
+	return userInput.LanguageName
 }
 
 func getUserLanguageSelection(optionsList []LanguageOption, reader *bufio.Reader) *LanguageOption {
@@ -177,25 +159,39 @@ func verifyUserInput(optionsList []LanguageOption, input string) (*LanguageOptio
 	return nil, errors.New("option does not exist")
 }
 
-func getUserSnippet(reader *bufio.Reader) string {
+func getUserSnippet(reader *bufio.Reader, buffer bytes.Buffer) (string, []byte) {
 	// prompt user to add to existing or create new
 	fmt.Println("Enter a title for the snippet (maximum 50 characters):")
-	snippet, err := reader.ReadString('\n')
+	snippetTitle, err := reader.ReadString('\n')
 	if err != nil {
 		// Handle error
 		fmt.Println("Error reading code snippet title", err)
 	}
 
 	// Trim any leading/trailing whitespace
-	snippet = strings.TrimSpace(snippet)
+	snippetTitle = strings.TrimSpace(snippetTitle)
 
 	// Limit the input to a certain length, e.g., 50 characters
 	maxChars := 50
-	if len(snippet) > maxChars {
-		snippet = snippet[:maxChars]
+	if len(snippetTitle) > maxChars {
+		snippetTitle = snippetTitle[:maxChars]
 	}
 
-	return snippet
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Println("Paste code snippet (type 'done' on a new line and then hit enter to save):")
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		if line == "done" {
+			break
+		}
+		buffer.WriteString(line + "\n")
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintln(os.Stderr, "reading standard input:", err)
+	}
+
+	return snippetTitle, buffer.Bytes()
 }
 
 func displayOptionsList(optionsList []LanguageOption) {
@@ -234,6 +230,7 @@ func createNewCodepadDirectory() {
 	codePadDir := getHomeDir()
 
 	// Check if the directory exists, else create it
+	fmt.Println("Checking if directory exists...")
 	if _, err := os.Stat(codePadDir); os.IsNotExist(err) {
 		// if it doesn't exist, create it
 		err := os.MkdirAll(codePadDir, 0755)
@@ -308,16 +305,21 @@ func getLanguageDirectories() []string {
 	return languageNames
 }
 
-func newLanguageInput(option string, reader *bufio.Reader) {
+func newLanguageInput(option string, reader *bufio.Reader) string {
+	var updatedCapitalized string
 	if option == "Add a new language" {
 		fmt.Println("What language would you like to add?")
 		input, err := reader.ReadString('\n')
-		input = strings.TrimSpace(input)
+		input = strings.TrimSpace(input) // Trim leading and trailing whitespace
 		if err != nil {
 			fmt.Println("Error reading input:", err)
+			return "" // Return empty string on error
 		}
-		createNewLanguageDirectory(input)
+		updatedCapitalized = capitalizeFirstLetter(input)
+		createNewLanguageDirectory(updatedCapitalized)
+		return updatedCapitalized
 	}
+	return option // Return empty string if the option is not "Add a new language"
 }
 
 func capitalizeFirstLetter(input string) string {
@@ -325,6 +327,18 @@ func capitalizeFirstLetter(input string) string {
 		return input
 	}
 	capitalized := strings.ToUpper(input[:1]) + input[1:]
-	fmt.Println(capitalized)
 	return capitalized
+}
+
+func createNewSnippet(newSnippet Snippet) {
+	// get filepath
+	filepath := getHomeDir()
+	fmt.Println("Saved at" + filepath + "/" + newSnippet.Language + "/" + newSnippet.Name)
+
+	// save the buffer to file
+	file, err := os.Create(filepath + "/" + newSnippet.Language + "/" + newSnippet.Name)
+	file.Write(newSnippet.SnippetContent)
+	if err != nil {
+		fmt.Println("Error creating file", err)
+	}
 }
