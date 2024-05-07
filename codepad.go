@@ -438,6 +438,7 @@ func findAndDisplaySnippet(path string, language string) {
 
 	str := string(b) // convert content to a 'string'
 
+	fmt.Println("")
 	err = quick.Highlight(os.Stdout, str, language, "terminal256", "monokai")
 	if err != nil {
 		fmt.Println("Error has occurred: ", err)
