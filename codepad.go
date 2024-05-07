@@ -96,7 +96,7 @@ func getUserCrudSelection(reader *bufio.Reader) CrudOption {
 
 	for {
 		blue := color.New(color.FgBlue)
-		blue.Print("What would you like to do? (Input number): ")
+		blue.Println("What would you like to do? (Input number): ")
 		input, err := reader.ReadString('\n')
 
 		input = strings.TrimSpace(input)
@@ -121,7 +121,7 @@ func getUserCrudSelection(reader *bufio.Reader) CrudOption {
 func getUserLanguage(reader *bufio.Reader, selectedCrud CrudOption) string {
 	// prompt user for language name
 	blue := color.New(color.FgBlue)
-	blue.Print("Select language: \n")
+	blue.Println("Select language:")
 
 	// search all directories and return them as options.
 	languages := getLanguageDirectories()
@@ -146,7 +146,7 @@ func getUserLanguage(reader *bufio.Reader, selectedCrud CrudOption) string {
 func getUserLanguageSelection(optionsList []LanguageOption, reader *bufio.Reader) *LanguageOption {
 	for {
 		blue := color.New(color.FgBlue)
-		blue.Print("Enter the selected language number: ")
+		blue.Println("Enter the selected language number: ")
 		input, err := reader.ReadString('\n')
 		if err != nil {
 			fmt.Println("Error reading input:", err)
@@ -408,7 +408,7 @@ func getSnippetSelection(path string, crudOption CrudOption, reader *bufio.Reade
 
 	for {
 		blue := color.New(color.FgBlue)
-		blue.Print("Input snippet selection number: ")
+		blue.Println("Input snippet selection number: ")
 		input, err := reader.ReadString('\n')
 		input = strings.TrimSpace(input)
 		if err != nil {
