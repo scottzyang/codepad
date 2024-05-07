@@ -16,14 +16,6 @@ CodePad is a command-line tool written in Go for managing code snippets. It allo
 - **Language:** Go
 - **Packages:** `bufio`, `bytes`, `errors`, `fmt`, `os`, `strconv`, `strings`, `github.com/alecthomas/chroma/v2/quick`, `github.com/fatih/color`
 
-## Installation
-
-To install CodePad, you need to have Go installed on your system. Then, you can install it using the `go get` command:
-
-```bash
-go get -u github.com/your_username/codepad
-```
-
 ## Usage
 1. Build the program
     ```bash
